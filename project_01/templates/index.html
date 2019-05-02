@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+
+{% block body %}
+<div class="d-flex justify-content-end">
+    <a class="btn btn-outline-danger" href="/sample" role="button">点击查看示例</a>
+</div>
+
+<h1 class="text-center text-primary">{{ index_header }}</h1>
+
+<section class="container">
+    <form action="/send_to_some_where" name="input" method="post">
+        <div class="form-row">
+            <label for="content">文本输入框</label>
+            <textarea class="form-control" id="content" name="input_text" rows="10" placeholder="请输入要提取的文本"></textarea>
+        </div>
+        <div class="d-flex justify-content-end">
+            <button class="btn btn-success" type="submit">提交</button>
+            <button class="btn btn-secondary" type="reset">重置</button>
+        </div>
+    </form>
+</section>
+
+<hr>
+
+<h2 class="text-center text-danger">提取结果</h2>
+
+<section class="container">
+    <table class="table table-sm table-striped table-bordered table-hover" id="result">
+        <thead class="thead-dark">
+            <tr>
+                <th scope="col" class="text-center">人物</th>
+                <th scope="col" class="text-center">观点</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>&nbsp;</td>
+                <td>&nbsp;</td>
+            </tr>
+        </tbody>
+    </table>
+</section>
+
+{% endblock %}

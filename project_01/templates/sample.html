@@ -1,0 +1,101 @@
+{% extends 'base.html' %}
+
+{% block body %}
+<div>
+    <a class="btn btn-outline-primary" href="/" role="button">返回</a>
+</div>
+
+<h1 class="text-center text-primary">{{ sample_header }}</h1>
+
+<section class="container">
+    <form action="" name="input" method="post">
+        <div class="form-row">
+            <label for="content">文本输入框</label>
+            <textarea class="form-control" id="content" name="input_text" rows="15" readonly>
+                这是一套常见的机关房改房，七十平方米左右，老旧不堪。家具像是赵德汉结婚时置办的，土得掉渣，沙发的边角都磨破了。门口丢着几双破拖鞋，扔到街上都没人拾。卫生间的马桶在漏水，隔上三两秒钟“滴答”一声。厨房里的水龙头也在滴水，但这似乎不是漏水，而是刻意偷水。证据很明显，水龙头下的脸盆里积了半盆不要钱的清水。
+ 侯亮平四处看着，摇头苦笑，这位处长真连寻常百姓都不如。
+                像是为他的思路做注解，赵德汉咀嚼着自由时光里的最后一碗炸酱面，抱怨说：你们反贪总局抓贪官怎么抓到我这儿来了？哎，有几个贪官住这种地方？七层老楼，连个电梯都没有，要是贪官都这样子，老百姓得放鞭炮庆贺了！他的声音被面条堵在嗓子眼，有些呜呜噜噜的。
+                是，是，老赵，瞧你多简朴啊，一碗炸酱面就对付一顿晚饭。
+                赵德汉吃得有滋有味：农民的儿子嘛，好这一口。
+                侯亮平直咂嘴，声音响亮夸张：哎哟，老赵，你可是处长啊！
+                赵德汉自嘲：在咱北京，处长算啥？一块砖能砸倒一片处长！
+                侯亮平表示赞同：这倒也是！不过，那也得看是什么处。你老赵这个处的权力大呀！早就有人说了，给个部长都不换，是不是啊？
+                赵德汉很严肃：权力大小，还不都是为人民服务吗？权力大就一定腐败吗？我这儿的情况你们也看到了，我劝你们别瞎耽误工夫了！
+                搜查一无所获。事实证明，的确是耽误工夫。侯亮平冲着赵德汉抱歉一笑：这么说还真搞错了？搞到咱廉政模范家来了？赵德汉挺有幽默感的，及时伸出一只肉滚滚的手告别：侯处长，那就再见吧。
+                侯亮平也很幽默，一把抓住了赵德汉的手：哎，赵处长，我既来了还真舍不得和你马上就分手哩！咱们去下一个点吧！说罢，从赵家桌上杂物筐里准确地拿出一张白色门卡，插到了赵德汉的上衣口袋里。
+                赵德汉慌了，忙把门卡往外掏：这……这什么呀这是？
+                你帝京苑豪宅的门卡啊！请继续配合我们执行公务吧！
+                赵德汉的幽默感瞬间消失，一下子软软瘫坐到地上……
+            </textarea>
+        </div>
+        <div class="d-flex justify-content-end">
+            <button class="btn btn-success" type="submit" disabled>提交</button>
+            <button class="btn btn-secondary" type="reset" disabled>重置</button>
+        </div>
+    </form>
+</section>
+
+<hr>
+
+<h2 class="text-center text-danger">提取结果</h2>
+
+<section class="container">
+    <table class="table table-sm table-striped table-bordered table-hover" id="result">
+        <thead class="thead-dark">
+        <tr>
+            <th scope="col" class="text-center">人物</th>
+            <th scope="col" class="text-center">观点</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td class="text-center">赵德汉</td>
+            <td>你们反贪总局抓贪官怎么抓到我这儿来了？哎，有几个贪官住这种地方？七层老楼，连个电梯都没有，要是贪官都这样子，老百姓得放鞭炮庆贺了！</td>
+        </tr>
+        <tr>
+            <td class="text-center">赵德汉</td>
+            <td>农民的儿子嘛，好这一口。</td>
+        </tr>
+        <tr>
+            <td class="text-center">侯亮平</td>
+            <td>哎哟，老赵，你可是处长啊！</td>
+        </tr>
+        <tr>
+            <td class="text-center">赵德汉</td>
+            <td>在咱北京，处长算啥？一块砖能砸倒一片处长！</td>
+        </tr>
+        <tr>
+            <td class="text-center">侯亮平</td>
+            <td>这倒也是！不过，那也得看是什么处。你老赵这个处的权力大呀！早就有人说了，给个部长都不换，是不是啊？</td>
+        </tr>
+        <tr>
+            <td class="text-center">赵德汉</td>
+            <td>权力大小，还不都是为人民服务吗？权力大就一定腐败吗？我这儿的情况你们也看到了，我劝你们别瞎耽误工夫了！</td>
+        </tr>
+        <tr>
+            <td class="text-center">侯亮平</td>
+            <td>这么说还真搞错了？搞到咱廉政模范家来了？</td>
+        </tr>
+        <tr>
+            <td class="text-center">赵德汉</td>
+            <td>侯处长，那就再见吧。</td>
+        </tr>
+        <tr>
+            <td class="text-center">侯亮平</td>
+            <td>哎，赵处长，我既来了还真舍不得和你马上就分手哩！咱们去下一个点吧！</td>
+        </tr>
+        <tr>
+            <td class="text-center">赵德汉</td>
+            <td>这……这什么呀这是？</td>
+        </tr>
+        <tr>
+            <td class="text-center">侯亮平</td>
+            <td>你帝京苑豪宅的门卡啊！请继续配合我们执行公务吧！</td>
+        </tr>
+
+
+        </tbody>
+    </table>
+</section>
+
+{% endblock %}
