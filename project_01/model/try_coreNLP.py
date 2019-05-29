@@ -2,14 +2,13 @@ import jieba
 import logging
 from stanfordcorenlp import StanfordCoreNLP
 
-# Local server
-# Terminal command:
+# Start a CoreNLP Remote Server with Terminal command:
 '''
 java -mx4g -cp "*" edu.stanford.nlp.pipeline.StanfordCoreNLPServer 
 -annotators tokenize,ssplit,pos,lemma,ner,parse,depparse,coref,quote -port 9000 -timeout 30000
 '''
-nlp = StanfordCoreNLP('http://localhost', port=9000, lang='zh', logging_level=logging.DEBUG)
 
+nlp = StanfordCoreNLP('http://localhost', port=9000, lang='zh', logging_level=logging.DEBUG)
 
 text_path = 'test_chinese_news.txt'
 sentence = ''
