@@ -2,7 +2,7 @@
 @Coding: uft-8
 @Time: 2019-05-29 15:15
 @Author: Ryne Chen
-@File: try_pyltp.py
+@File: pyltp_sample.py
 @Python Verson: 3.6
 """
 
