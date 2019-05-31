@@ -3,7 +3,7 @@
 @Time: 2019-05-29 18:10
 @Author: Ryne Chen
 @File: try_pyltp.py 
-@Python Verson: 3.6
+@Python Version: 3.6
 """
 
 import os

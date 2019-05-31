@@ -3,7 +3,7 @@
 @Time: 2019-05-29 15:15
 @Author: Ryne Chen
 @File: pyltp_sample.py
-@Python Verson: 3.6
+@Python Version: 3.6
 """
 
 import os
