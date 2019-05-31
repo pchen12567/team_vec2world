@@ -14,6 +14,7 @@ from pyltp import NamedEntityRecognizer
 from pyltp import Parser
 import jieba
 from pyltp import SementicRoleLabeller
+from collections import defaultdict
 
 # 初始化路径
 # ltp模型目录的路径
@@ -58,12 +59,12 @@ def load_text(text_path):
 
 
 # 分句
-def sentence_splitter(sentence):
+def sentence_splitter(sentences):
     """
-    :param sentence: 文本内容，type=string
+    :param sentences: 文本内容，type=string
     :return: 句子列表
     """
-    sents = SentenceSplitter.split(sentence)
+    sents = SentenceSplitter.split(sentences)
 
     sents_list = list(sents)
 
@@ -111,22 +112,137 @@ def get_parsing(words, postags):
     parser.load(par_model_path)
     arcs = parser.parse(words, postags)
     parser.release()
-    return arcs
+    return [(arc.head, arc.relation) for arc in arcs]
 
+
+# 加载"说"的相关词
+def load_saying_words(saying_words_path):
+    saying_list = []
+    with open(saying_words_path, 'r') as f:
+        for line in f.readlines():
+            if line.strip():
+                saying_list.append(line.strip())
+    # print(saying_list)
+    # print(len(saying_list))
+    return saying_list
+
+
+# 匹配句子中的"说"
+def match_saying_words(words, saying_list):
+    match = []
+    for index, word in enumerate(words):
+        if word in saying_list:
+            match.append((word, index))
+    return match
+
+
+# 提取单个句子
+def extract_single_sentence(saying_list, sentence):
+    opinions = defaultdict(str)
+
+    words = cut_words_ltp(sentence)
+
+    match_words = match_saying_words(words, saying_list)
+
+    if match_words:
+        print(words)
+        print(match_words)
+        # 获取词性标注
+        postags = get_postags(words)
+        # print(postags)
+        # 获取ner
+        netags = get_ner(words, postags)
+        print(netags)
+        # 获取依存分析
+        arcs = get_parsing(words, postags)
+        print(arcs)
+
+        names = get_name(words, netags)
+
+        for name, position in names.items():
+            # print(name, position)
+            start = position[0]
+            end = position[1]
+
+            for w in match_words:
+                saying_index = w[1]
+
+                head = arcs[saying_index][0]
+                relation = arcs[saying_index][1]
+
+                if head == start and relation == 'HED':
+                    # print(saying_index)
+                    opinion = ''.join(words[saying_index + 2:])
+                    opinions[name] = opinion
+
+        return opinions
+
+
+# 获取人名
+def get_name(words, netags):
+    names = defaultdict(tuple)
+    for start_index, ner in enumerate(netags):
+        if ner == 'S-Nh':
+            name = words[start_index]
+            names[name] = (start_index, start_index)
+
+        if ner == 'B-Nh':
+            end_netags = netags[start_index:]
+            end_index = start_index + end_netags.index('E-Nh')
+            name = ''.join(words[start_index: end_index + 1])
+            names[name] = (start_index, end_index)
+
+        if ner == 'S-Ni':
+            name = words[start_index]
+            names[name] = (start_index, start_index)
+
+        if ner == 'B-Ni':
+            end_netags = netags[start_index:]
+            end_index = start_index + end_netags.index('E-Ni')
+            name = ''.join(words[start_index: end_index + 1])
+            names[name] = (start_index, end_index)
+
+        # if ner == 'S-Ns':
+        #     name = words[start_index]
+        #     names[name] = (start_index, start_index)
+
+    return names
+
+
+saying_words_path = 'saying_verbs_cleaned.txt'
+saying_list = load_saying_words(saying_words_path)
 
 text_path = 'test_chinese_news.txt'
-sentence = load_text(text_path)
-sents_list = sentence_splitter(sentence)
+sentences = load_text(text_path)
+
+sents_list = sentence_splitter(sentences)
 # print(sents_list)
+
+
+# l = """
+# 博索纳罗还表示，“我一直说，公共安全从家里开始的。”
+# """
+# print(l)
+
 for sent in sents_list:
-    words = cut_words_ltp(sent)
-    # words = cut_words_jieba(sent)
-    print(words)
-    postags = get_postags(words)
-    print(postags)
-    netags = get_ner(words, postags)
-    print(netags)
-    arcs = get_parsing(words, postags)
-    # arc.head 表示依存弧的父节点词的索引，arc.relation 表示依存弧的关系
-    print("\t".join("%d:%s" % (arc.head, arc.relation) for arc in arcs))
-    print('*' * 40)
+    print(sent)
+    opinions = extract_single_sentence(saying_list, sent)
+    if opinions:
+        for name, op in opinions.items():
+            print("人物：{}\n言论：{}".format(name, op))
+    print('*' * 80)
+#
+# for sent in sents_list:
+#     extract_single_sentence(saying_list, sent)
+
+#     words = cut_words_ltp(sent)
+#     # words = cut_words_jieba(sent)
+#     print(words)
+#     postags = get_postags(words)
+#     print(postags)
+#     netags = get_ner(words, postags)
+#     print(netags)
+#     arcs = get_parsing(words, postags)
+#     # arc.head 表示依存弧的父节点词的索引，arc.relation 表示依存弧的关系
+#     print("\t".join("%d:%s" % (arc.head, arc.relation) for arc in arcs))
+#     print('*' * 40)
