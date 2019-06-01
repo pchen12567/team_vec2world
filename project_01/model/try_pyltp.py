@@ -13,7 +13,6 @@ from pyltp import Postagger
 from pyltp import NamedEntityRecognizer
 from pyltp import Parser
 import jieba
-from pyltp import SementicRoleLabeller
 from collections import defaultdict
 
 # 初始化路径
@@ -31,7 +30,7 @@ par_model_path = os.path.join(LTP_DATA_DIR, 'parser.model')
 srl_model_path = os.path.join(LTP_DATA_DIR, 'pisrl.model')
 
 
-# 加载文本
+# 加载测试用文本
 def load_text(text_path):
     """
     :param text_path: 文本路径
@@ -119,6 +118,7 @@ def load_saying_words(saying_words_path):
 def match_saying_words(words, saying_list, postags):
     match = []
     for index, word in enumerate(words):
+        # 根据词性标注筛选出动词"说"
         if word in saying_list and postags[index] == 'v':
             match.append((word, index))
     return match
@@ -126,6 +126,7 @@ def match_saying_words(words, saying_list, postags):
 
 # 提取全文的人名和组织名
 def get_total_names(sents_list):
+    # 初始化人名字典
     total_names = defaultdict(list)
 
     for sentence in sents_list:
@@ -178,19 +179,19 @@ def get_total_names(sents_list):
             #     name = ''.join(words[start_index: end_index + 1])
             #     name_seg = words[start_index: end_index + 1]
             #     total_names[name] = name_seg
+
+    # 返回人名字典，key=人名string，value=人名片段list
     return total_names
 
 
 # # 获取单句的人名和组织名
-# def get_names_with_position(words, netags, total_names):
-#     names = []
+# def get_names_with_position(words, netags):
 #     names_with_position = []
 #
 #     for start_index, ner in enumerate(netags):
 #         # 单个词构成的人名
 #         if ner == 'S-Nh':
 #             name = words[start_index]
-#             names.append(name)
 #             position = (start_index, start_index)
 #             names_with_position.append((name, position))
 #
@@ -199,14 +200,12 @@ def get_total_names(sents_list):
 #             end_netags = netags[start_index:]
 #             end_index = start_index + end_netags.index('E-Nh')
 #             name = ''.join(words[start_index: end_index + 1])
-#             names.append(name)
 #             position = (start_index, end_index)
 #             names_with_position.append((name, position))
 #
 #         # 单个词构成的组织名
 #         if ner == 'S-Ni':
 #             name = words[start_index]
-#             names.append(name)
 #             position = (start_index, start_index)
 #             names_with_position.append((name, position))
 #
@@ -215,88 +214,149 @@ def get_total_names(sents_list):
 #             end_netags = netags[start_index:]
 #             end_index = start_index + end_netags.index('E-Ni')
 #             name = ''.join(words[start_index: end_index + 1])
-#             names.append(name)
 #             position = (start_index, end_index)
-#             names_with_position.append((name, position))
-#
-#     # 查询是否存在人名提取遗漏的情况
-#     for name, name_seg in total_names.items():
-#         # 单个词构成的人名
-#         if len(name_seg) == 1 and name in words and name not in names:
-#             position = (words.index(name), words.index(name))
 #             names_with_position.append((name, position))
 #
 #     return names_with_position
 
 
+# 优化单句中人名提取函数，可以减少通过NER提取人名失败的情况
+# 获取单句的人名和组织名
 def get_names_with_position(sentence, words, total_names):
+    # 初始化返回列表
     names_with_position = []
+
+    # 遍历全文的人名
     for name, name_seg in total_names.items():
+        # 当前句包含人名
         if name in sentence:
             # 单个词构成的人名
             if len(name_seg) == 1:
+                # 遍历当前句
                 for index, w in enumerate(words):
+                    # 提取所有单词构成的人名及其位置
                     if w == name:
                         position = (index, index)
                         names_with_position.append((name, position))
+
             # 多个词构成的人名
             if len(name_seg) > 1:
+                # 遍历当前句
                 for start_index, w in enumerate(words):
+                    # 提取所有多词构成的人名及其位置
                     if w == name_seg[0]:
                         end_index = start_index + len(name_seg) - 1
                         position = (start_index, end_index)
                         names_with_position.append((name, position))
+
+    # 返回人名和位置结果列表，元素为元组(name, (start_index, end_index))
     return names_with_position
 
 
 # 获取言论
 def get_opinions(words, match_words, names_with_position, arcs):
+    # 初始化返回列表
     opinions = []
 
+    # 第一步，根据句子中的人名获取对应言论
+    # 遍历句子中的所有人名
     for (name, position) in names_with_position:
-
+        # 获得人名的位置
         start_index = position[0]
         end_index = position[1]
 
-        # if "：" in words:
-        #     print('condition one')
-        #     opinion_index = words.index('：')
-        #     opinion = ''.join(words[opinion_index + 1:])
-        #     opinions[name] = opinion
-
         # 通过人名的 arc.relation = 'SBV' 找言论
         if arcs[end_index][1] == 'SBV':
+            # 获取言论初始位置，假设为 SBV 指向的 head 位置
             opinion_index = arcs[end_index][0]
 
+            # 判断言论初始位置是否为标点符号或 arc.relation = 'RAD'
+            # 如果是，则其位置往下顺延一位
             if arcs[opinion_index][1] == 'WP' or 'RAD':
                 opinion_index += 1
 
+            # 获取完整言论并保存
             opinion = ''.join(words[opinion_index:])
             opinions.append((name, opinion))
 
-        # for w in match_words:
-        #     saying_index = w[1]
-        #
-        #     head = arcs[saying_index][0]
-        #     relation = arcs[saying_index][1]
-        #
-        #     if head == start_index and relation == 'HED':
-        #         # print('condition two')
-        #         opinion = ''.join(words[saying_index + 2:])
-        #         opinions.append((name, opinion))
-        #
-        #     elif arcs[head][1] == 'ATT' and relation == 'HED':
-        #         # print('condition 3')
-        #         person_index = arcs[head][0]
-        #
-        #         if arcs[person_index][1] == 'WP':
-        #             print('i am in')
-        #             person_index += 1
-        #
-        #         if name.startswith(words[person_index]):
-        #             opinion = ''.join(words[saying_index + 2:])
-        #             opinions.append((name, opinion))
+            # 获取当前言论的"说"
+            # 获取"说"的位置，假设在人名末尾后一位
+            saying_index = end_index + 1
+            # 获取"说"
+            saying = words[saying_index]
 
+            # 将获取的"说"及其位置在"说"的列表中进行匹配
+            if (saying, saying_index) in match_words:
+                # 将匹配成功的"说"从列表中移除，避免二次匹配
+                match_words.remove((saying, saying_index))
+
+    # 第二步，根据句子中的"说"来找对应人名和言论
+    # 遍历所有的"说"
+    for (saying, position) in match_words:
+        # 获取"说"的主体位置
+        head_index = arcs[position][0]
+        # 获取"说"的 arc.relation
+        saying_relation = arcs[position][1]
+
+        # 当"说"的 arc.relation = 'COO' 并且其 arc.head 指向的位置为自身时
+        if saying_relation == 'COO' and head_index == position:
+            # 获取新的"说"的位置，假设为当前"说"的前一位
+            new_saying_index = head_index - 1
+
+            # 获取新"说"的 arc.head 指向位置
+            new_head_index = arcs[new_saying_index][0]
+            # 获取新"说"的 arc.relation
+            new_saying_relation = arcs[new_saying_index][1]
+
+            # 获取言论的初始位置，假设为当前"说"的下一位
+            opinion_index = position + 1
+
+            # 判断言论的起始位置是否为标点符号
+            # 如果是，则其位置往下顺延一位
+            if arcs[opinion_index][1] == 'WP':
+                opinion_index += 1
+
+            # 获取完整言论
+            opinion = ''.join(words[opinion_index:])
+
+            # 根据 VOB 找到人名
+            if new_saying_relation == 'VOB':
+                name = words[new_head_index]
+
+                # 保存人名及其言论
+                opinions.append((name, opinion))
+
+        # 当"说"的 arc.relation = 'VOB' 时
+        if saying_relation == 'VOB':
+            # 获取言论的初始位置，假设为"说"的下一位
+            opinion_index = position + 1
+
+            # 判断言论的起始位置是否为标点符号
+            # 如果是，则其位置往下顺延一位
+            if arcs[opinion_index][1] == 'WP':
+                opinion_index += 1
+
+            # 获取完整言论
+            opinion = ''.join(words[opinion_index:])
+
+            # if arcs[head_index][1] == 'ATT':
+            #     head_index = arcs[head_index][0]
+
+            # 判断人名的位置是否为标点符号
+            # 如果是，则其位置往下顺延一位
+            if arcs[head_index][1] == 'WP':
+                head_index += 1
+
+            if arcs[head_index][1] == 'ATT':
+                head_index += 1
+
+            # 获取人名
+            name = words[head_index]
+
+            # 保存人名及其言论
+            opinions.append((name, opinion))
+
+    # 返回言论结果列表，元素为元组(name, opinion)
     return opinions
 
 
@@ -307,32 +367,32 @@ def extract_single_sentence(saying_list, sentence, total_names):
     # 获取词性标注
     postags = get_postags(words)
 
-    match_words = match_saying_words(words, saying_list, postags)
-
     # 获取ner
     netags = get_ner(words, postags)
 
     # 获取依存分析
     arcs = get_parsing(words, postags)
 
-    if not match_words:
-        print("----不包含'说'----")
+    # 获取当前句子中的"说"
+    match_words = match_saying_words(words, saying_list, postags)
+
+    if not match_words and "：" not in sentence:
         return False
 
     # print("匹配到的说", match_words)
-
+    #
     # print("词性标注情况")
     # print([(str(index) + words[index], pos) for index, pos in enumerate(postags)])
-
+    #
     # print("命名实体识别情况")
     # print([(str(index) + words[index], net) for index, net in enumerate(netags)])
-
+    #
     # print("依存句法分析情况")
     # print([(str(index) + words[index], arc) for index, arc in enumerate(arcs)])
 
-    # names_with_position = get_names_with_position(words, netags, total_names)
-    names_with_position = get_names_with_position(sentence, words, total_names )
-    print('人名:', names_with_position)
+    # 获取当前句子中的人名及其位置
+    names_with_position = get_names_with_position(sentence, words, total_names)
+    # print('人名:', names_with_position)
 
     res = get_opinions(words, match_words, names_with_position, arcs)
 
@@ -340,48 +400,28 @@ def extract_single_sentence(saying_list, sentence, total_names):
 
 
 def main():
+    news = """在今天商务部举行的例行发布会上，有媒体表示：IMF近日发布的研究报告称，美国加征关税造成的成本几乎全部由美国企业承担了，但美国总统特朗普称，中国在为美国加征的关税买单。对此，新闻发言人高峰表示：美方的贸易霸凌主义最终损害的是美国自身，买单的是美国的消费者和企业。
+
+    　　高峰表示，中美贸易不平衡，主要是由于美国出口管制等非经济因素以及储蓄率低等原因造成的，加征关税根本解决不了贸易不平衡问题。
+
+    　　关于美国单方面加征关税的影响，高峰强调，美方的贸易霸凌做法最终损害的是美国自身，买单的是美国的消费者和企业，纽约联储经济学家最近的预测表明，美方加征关税措施，将使每个美国家庭每年平均损失831美元。
+
+    　　高峰表示，美国一些智库的研究也显示，如果美方的措施持续下去，会导致美国的GDP增速下滑、就业和投资减少、国内物价上升，美国商品在海外的竞争力下降，已经有越来越多的美国企业、消费者感受到加征关税的影响。
+
+    　　与此同时，高峰再次强调了中方关于中美经贸磋商的立场：中方绝不会接受任何有损国家主权和尊严的协议，在重大原则问题上，中方绝对不会让步，如果要达成协议，美方需要拿出诚意，妥善解决中方提出的核心关切，在平等相待、相互尊重的基础上继续磋商。
+    """
+
     # saying_words_path = 'saying_verbs_cleaned.txt'
     saying_words_path = 'saying_verbs.txt'
     saying_list = load_saying_words(saying_words_path)
 
     # text_path = 'test_chinese_news.txt'
     # sentences = load_text(text_path)
-    #
     # sents_list = sentence_splitter(sentences)
-    #
-    # for sent in sents_list:
-    #     print(sent)
-    #     opinions = extract_single_sentence(saying_list, sent)
-    #     if opinions:
-    #         for name, op in opinions.items():
-    #             print("人物：{}\n言论：{}".format(name, op))
-    #     print('*' * 80)
-
-    # news = """在今天商务部举行的例行发布会上，有媒体表示：IMF近日发布的研究报告称，美国加征关税造成的成本几乎全部由美国企业承担了，但美国总统特朗普称，中国在为美国加征的关税买单。对此，新闻发言人高峰表示：美方的贸易霸凌主义最终损害的是美国自身，买单的是美国的消费者和企业。
-    #
-    # 　　高峰表示，中美贸易不平衡，主要是由于美国出口管制等非经济因素以及储蓄率低等原因造成的，加征关税根本解决不了贸易不平衡问题。
-    #
-    # 　　关于美国单方面加征关税的影响，高峰强调，美方的贸易霸凌做法最终损害的是美国自身，买单的是美国的消费者和企业，纽约联储经济学家最近的预测表明，美方加征关税措施，将使每个美国家庭每年平均损失831美元。
-    #
-    # 　　高峰表示，美国一些智库的研究也显示，如果美方的措施持续下去，会导致美国的GDP增速下滑、就业和投资减少、国内物价上升，美国商品在海外的竞争力下降，已经有越来越多的美国企业、消费者感受到加征关税的影响。
-    #
-    # 　　与此同时，高峰再次强调了中方关于中美经贸磋商的立场：中方绝不会接受任何有损国家主权和尊严的协议，在重大原则问题上，中方绝对不会让步，如果要达成协议，美方需要拿出诚意，妥善解决中方提出的核心关切，在平等相待、相互尊重的基础上继续磋商。
-    # """
-    #
-    news = """美国贸易代表莱特希泽星期五表示，他已收到总统特朗普的指示，对其余尚未加征关税的所有中国商品加征关税，星期一将公布细节。此后特朗普发推特呼吁中国现在就采取行动(向美方让步)。关于中美下一步何时磋商，美财政部长姆努钦对媒体回应说：“目前还没有这方面的安排。”
-
-    美国极限施压的大棒高高举起，中方的态度是：我们做好了应对各种情况的准备。“极限施压”与“应对各种情况”在博弈。
-
-    美方是挑起贸易战的一方，自恃实力强大，相信它的关税大棒足以压垮中国。中方的回应则是太极哲学的示范版，坚守原则，不主动打也不惧战，用更大的承受力瓦解对方的攻击力，增加其他情况出现的可能性。
-
-    美方攻势猛烈，但这种攻势在经济学上充满了非理性，对美国经济将导致常识性的自伤。美方显然寄希望于人类贸易史上从未有过的凶猛关税战可以一举摧毁中国的意志，以短时间内的损失换取中国接受不平等协议，铸就美国现政府的“辉煌大业”。美国的做法是赌博。美方不断发声，一个动作接一个动作，表现出的其实是他们急切希望这一切迅速生效的焦虑。
-    """
 
     sents_list = sentence_splitter(news)
     total_names = get_total_names(sents_list)
-    print('全部人名', total_names)
-    # for n in total_names:
-    #     print(len(n))
+    print('全部人名', total_names.items())
     for sent in sents_list:
         print(sent)
         opinions = extract_single_sentence(saying_list, sent, total_names)
@@ -390,7 +430,7 @@ def main():
             for (name, op) in opinions:
                 print("人物：{}\n言论：{}".format(name, op))
         else:
-            print('提取失败')
+            print('---抱歉，没有找到说---')
         print('*' * 80)
 
 
